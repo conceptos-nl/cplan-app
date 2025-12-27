@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "125015491600",
+    "project_id": "cplan-app",
+    "storage_bucket": "cplan-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:125015491600:android:830df0559768ebd4253695",
+        "android_client_info": {
+          "package_name": "com.conceptos.cplan"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC0qYd1Lzw4FE3u2acP15NBa2KYYC512js"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
