@@ -1,6 +1,8 @@
 PODS:
   - app_badge_plus (1.2.6):
     - FlutterMacOS
+  - app_links (6.4.1):
+    - FlutterMacOS
   - device_info_plus (0.0.1):
     - FlutterMacOS
   - Firebase/CoreOnly (12.6.0):
@@ -83,6 +85,7 @@ PODS:
 
 DEPENDENCIES:
   - app_badge_plus (from `Flutter/ephemeral/.symlinks/plugins/app_badge_plus/macos`)
+  - app_links (from `Flutter/ephemeral/.symlinks/plugins/app_links/macos`)
   - device_info_plus (from `Flutter/ephemeral/.symlinks/plugins/device_info_plus/macos`)
   - firebase_core (from `Flutter/ephemeral/.symlinks/plugins/firebase_core/macos`)
   - firebase_messaging (from `Flutter/ephemeral/.symlinks/plugins/firebase_messaging/macos`)
@@ -107,6 +110,8 @@ SPEC REPOS:
 EXTERNAL SOURCES:
   app_badge_plus:
     :path: Flutter/ephemeral/.symlinks/plugins/app_badge_plus/macos
+  app_links:
+    :path: Flutter/ephemeral/.symlinks/plugins/app_links/macos
   device_info_plus:
     :path: Flutter/ephemeral/.symlinks/plugins/device_info_plus/macos
   firebase_core:
@@ -126,6 +131,7 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   app_badge_plus: da29ead6d3bd8cdbfffc42da99c6e06225c385d8
+  app_links: 05a6ec2341985eb05e9f97dc63f5837c39895c3f
   device_info_plus: 4fb280989f669696856f8b129e4a5e3cd6c48f76
   Firebase: a451a7b61536298fd5cbfe3a746fd40443a50679
   firebase_core: 2ccd04fc130691db5f3d3cd9aa43ab430004c1e9

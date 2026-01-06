@@ -1,6 +1,8 @@
 PODS:
   - app_badge_plus (1.2.6):
     - Flutter
+  - app_links (7.0.0):
+    - Flutter
   - device_info_plus (0.0.1):
     - Flutter
   - Firebase/CoreOnly (12.6.0):
@@ -84,6 +86,7 @@ PODS:
 
 DEPENDENCIES:
   - app_badge_plus (from `.symlinks/plugins/app_badge_plus/ios`)
+  - app_links (from `.symlinks/plugins/app_links/ios`)
   - device_info_plus (from `.symlinks/plugins/device_info_plus/ios`)
   - firebase_core (from `.symlinks/plugins/firebase_core/ios`)
   - firebase_messaging (from `.symlinks/plugins/firebase_messaging/ios`)
@@ -109,6 +112,8 @@ SPEC REPOS:
 EXTERNAL SOURCES:
   app_badge_plus:
     :path: ".symlinks/plugins/app_badge_plus/ios"
+  app_links:
+    :path: ".symlinks/plugins/app_links/ios"
   device_info_plus:
     :path: ".symlinks/plugins/device_info_plus/ios"
   firebase_core:
@@ -130,6 +135,7 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   app_badge_plus: 32b6022e2a8585454d6c2a99aa65f8f31f06752a
+  app_links: a754cbec3c255bd4bbb4d236ecc06f28cd9a7ce8
   device_info_plus: 21fcca2080fbcd348be798aa36c3e5ed849eefbe
   Firebase: a451a7b61536298fd5cbfe3a746fd40443a50679
   firebase_core: ba00a168e719694f38960502ceb560285603d073
