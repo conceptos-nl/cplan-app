@@ -62,3 +62,12 @@ class LoginResponse {
     );
   }
 }
+
+class MagicLinkData {
+  final String org;
+  final String user;
+  final String code;
+
+  MagicLinkData({required this.org, required this.user, required this.code});
+  bool get isValid => org.isNotEmpty && user.isNotEmpty && code.isNotEmpty;
+}

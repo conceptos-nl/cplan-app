@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:ivo_service_app/src/components/base/base_view.dart';
 import 'package:ivo_service_app/src/components/widgets/custom_text_field.dart';
 import 'package:ivo_service_app/src/components/widgets/primary_button.dart';
 import 'package:ivo_service_app/src/controller/auth_controller/auth_controller.dart';
 import 'package:ivo_service_app/src/routes/app_routes.dart';
 
-class OrganizationCodePage extends StatelessWidget {
+class OrganizationCodePage extends BaseView<AuthController> {
   OrganizationCodePage({super.key});
 
   final TextEditingController _codeController = TextEditingController();
+
+  @override
   final AuthController controller = Get.put(AuthController());
 
   @override
-  Widget build(BuildContext context) {
+  Widget buildBody(BuildContext context) {
     final theme = context.theme;
     final colorScheme = theme.colorScheme;
 

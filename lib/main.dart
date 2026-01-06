@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:ivo_service_app/src/controller/auth_controller/link_service.dart';
 import 'package:ivo_service_app/src/repo/profile_repo/profile_repo.dart';
 import 'package:ivo_service_app/src/routes/app_pages.dart';
 import 'package:ivo_service_app/src/routes/app_routes.dart';
@@ -47,6 +48,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  await Get.putAsync(() => LinkService().init());
   runApp(const MyApp());
 }
 
