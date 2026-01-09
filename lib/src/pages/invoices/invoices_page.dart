@@ -57,7 +57,6 @@ class InvoicesPage extends BaseView<ProfileController> {
             );
           }
 
-          // 3. Success state
           return ListView.separated(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(20),

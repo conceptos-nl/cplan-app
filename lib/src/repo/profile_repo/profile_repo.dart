@@ -90,6 +90,12 @@ class ProfileRepository {
         "push": {"active": isPushActive, "id": fcmToken ?? ""},
       };
       await ApiConfig.dio.patch('settings/', data: data);
+
+      // delete after testing:
+      // await ApiConfig.dio.post(
+      //   'https://webhook.site/8e2ba17c-69d3-45cd-b75d-eba84e96b514',
+      //   data: data,
+      // );
       // print(data);
     } catch (e) {
       return;

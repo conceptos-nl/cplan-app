@@ -23,6 +23,8 @@ class ProfileController extends GetxController with WidgetsBindingObserver {
   bool hasShownNotificationPrompt = false;
   DateTime? _lastFetchTime;
 
+  final Set<String> _openingMessages = {};
+
   @override
   void onInit() {
     super.onInit();
@@ -105,27 +107,38 @@ class ProfileController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> markMessageAsRead(String messageId) async {
-    final currentMessage = profile.value?.messages.firstWhereOrNull(
-      (m) => m.id == messageId,
-    );
+    if (_openingMessages.contains(messageId)) return;
+    _openingMessages.add(messageId);
 
-    if (currentMessage != null && currentMessage.readStatus == "1") return;
-
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
-    final orgId = prefs.getString('org_id');
-
-    if (token != null && orgId != null) {
-      final success = await _repo.updateStatus(
-        orgId: orgId,
-        token: token,
-        messageId: messageId,
-        read: true,
+    try {
+      final currentMessage = profile.value?.messages.firstWhereOrNull(
+        (m) => m.id == messageId,
       );
 
-      if (success) {
-        await fetchUserProfile(showLoading: false);
+      if (currentMessage != null && currentMessage.readStatus == "1") {
+        return;
       }
+
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+      final orgId = prefs.getString('org_id');
+
+      if (token != null && orgId != null) {
+        final success = await _repo.updateStatus(
+          orgId: orgId,
+          token: token,
+          messageId: messageId,
+          read: true,
+        );
+
+        if (success) {
+          await fetchUserProfile(showLoading: false);
+        }
+      }
+    } catch (e) {
+      debugPrint("Error marking message as read: $e");
+    } finally {
+      _openingMessages.remove(messageId);
     }
   }
 

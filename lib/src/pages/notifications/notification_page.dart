@@ -56,16 +56,13 @@ class NotificationPage extends BaseView<ProfileController> {
 
           return ListView.builder(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(
-              12,
-            ), // Reduced padding to let borders breathe
+            padding: const EdgeInsets.all(12),
             itemCount: messages.length,
             itemBuilder: (context, index) {
               final message = messages[index];
               return NotificationListItem(
                 message: message,
                 onTap: () {
-                  // REQUIREMENT #2: Trigger "Read" status on click
                   controller.markMessageAsRead(message.id);
 
                   Get.toNamed(
@@ -109,9 +106,6 @@ class NotificationListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
-
-    // REQUIREMENT #8: Logic to check read status
-    // "0" is unread, "1" is read
     final bool isUnread = message.readStatus == "0";
 
     IconData iconData;
@@ -145,7 +139,6 @@ class NotificationListItem extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         decoration: BoxDecoration(
-          // Subtle background for unread items
           color: isUnread
               ? iconColor.withValues(alpha: 0.03)
               : Colors.transparent,
@@ -169,7 +162,6 @@ class NotificationListItem extends StatelessWidget {
                   ),
                   child: Icon(iconData, color: iconColor, size: 24),
                 ),
-                // REQUIREMENT #8: Unread blue dot indicator
                 if (isUnread)
                   Positioned(
                     right: 0,
@@ -212,7 +204,6 @@ class NotificationListItem extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  // REQUIREMENT #8: Bold subject for unread
                   Text(
                     message.subject,
                     style: theme.textTheme.titleMedium?.copyWith(
@@ -226,7 +217,6 @@ class NotificationListItem extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  // REQUIREMENT #8: Darker text for unread body
                   Text(
                     message.body
                         .replaceAll(RegExp(r'\\n'), ' ')
