@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:ivo_service_app/src/routes/app_routes.dart';
+import 'package:ivo_service_app/src/pages/contact/contact_page.dart';
+import 'package:ivo_service_app/src/pages/home/home_page.dart';
+import 'package:ivo_service_app/src/pages/invoices/invoices_page.dart';
+import 'package:ivo_service_app/src/pages/notifications/notification_page.dart';
+import 'package:ivo_service_app/src/pages/schedule_list/schedule_list_page.dart';
 
 class AppBottomBar extends StatelessWidget {
   final int currentIndex;
@@ -10,21 +14,23 @@ class AppBottomBar extends StatelessWidget {
   void _handleNavigation(int index) {
     if (currentIndex == index) return;
 
+    const transition = Transition.noTransition;
+
     switch (index) {
       case 0:
-        Get.offAllNamed(AppRoutes.home);
+        Get.offAll(() => const HomePage(), transition: transition);
         break;
       case 1:
-        Get.offAllNamed(AppRoutes.scheduleList);
+        Get.offAll(() => const ScheduleListPage(), transition: transition);
         break;
       case 2:
-        Get.offAllNamed(AppRoutes.invoiceList);
+        Get.offAll(() => const InvoicesPage(), transition: transition);
         break;
       case 3:
-        Get.offAllNamed(AppRoutes.notifications);
+        Get.offAll(() => const NotificationPage(), transition: transition);
         break;
       case 4:
-        Get.toNamed(AppRoutes.contactOrganization);
+        Get.offAll(() => const ContactPage(), transition: transition);
         break;
     }
   }

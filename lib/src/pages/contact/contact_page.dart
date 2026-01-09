@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import 'package:ivo_service_app/src/components/app_bottom_bar/app_bottom_bar.dart';
 import 'package:ivo_service_app/src/components/base/base_view.dart';
@@ -160,8 +161,8 @@ class ContactPage extends BaseView<ProfileController> {
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     onPressed: () => _launchUrl(org.whatsappUrl),
-                    icon: const Icon(
-                      Icons.chat_bubble_outline,
+                    icon: const FaIcon(
+                      FontAwesomeIcons.whatsapp,
                       color: Colors.white,
                     ),
                     label: const Text(

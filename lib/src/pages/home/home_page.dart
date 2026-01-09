@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import 'package:ivo_service_app/src/components/app_bottom_bar/app_bottom_bar.dart';
 import 'package:ivo_service_app/src/components/base/base_view.dart';
@@ -62,51 +63,51 @@ class HomePage extends BaseView<ProfileController> {
           onRefresh: controller.refreshProfile,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            child: Obx(() {
-              final profile = controller.profile.value;
-              final org = controller.organization.value;
-
-              if (controller.isLoading.value && profile == null) {
-                return const SizedBox.shrink();
-              }
-
-              if (profile == null && !controller.isLoading.value) {
-                return Center(
-                  child: Text(
-                    controller.errorMessage.value.isNotEmpty
-                        ? controller.errorMessage.value
-                        : "Geen gegevens gevonden",
-                  ),
-                ).paddingAll(24);
-              }
-
-              final customer = profile!.customer;
-              final invoiceData = profile.invoices;
-              final hasOpenInvoices = invoiceData.totalOpenInvoices > 0;
-              final nextAppointments = profile.schedule.next.take(4).toList();
-
-              return Stack(
-                children: [
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    child: ClipRect(
-                      child: SizedBox(
-                        height: 300,
-                        child: const IgnorePointer(
-                          child: SnowFallAnimation(
-                            config: SnowfallConfig(
-                              numberOfSnowflakes: 60,
-                              speed: 0.5,
-                            ),
+            child: Stack(
+              children: [
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: ClipRect(
+                    child: SizedBox(
+                      height: 300,
+                      child: const IgnorePointer(
+                        child: SnowFallAnimation(
+                          config: SnowfallConfig(
+                            numberOfSnowflakes: 60,
+                            speed: 0.5,
                           ),
                         ),
                       ),
                     ),
                   ),
+                ),
 
-                  Column(
+                Obx(() {
+                  final profile = controller.profile.value;
+                  if (controller.isLoading.value && profile == null) {
+                    return const SizedBox.shrink();
+                  }
+
+                  if (profile == null && !controller.isLoading.value) {
+                    return Center(
+                      child: Text(
+                        controller.errorMessage.value.isNotEmpty
+                            ? controller.errorMessage.value
+                            : "Geen gegevens gevonden",
+                      ),
+                    ).paddingAll(24);
+                  }
+
+                  final customer = profile?.customer;
+                  final invoiceData = profile?.invoices;
+                  final hasOpenInvoices = invoiceData!.totalOpenInvoices > 0;
+                  final nextAppointments = profile?.schedule.next
+                      .take(4)
+                      .toList();
+
+                  return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
@@ -139,7 +140,7 @@ class HomePage extends BaseView<ProfileController> {
                                       style: theme.textTheme.bodyMedium,
                                     ),
                                     Text(
-                                      customer.name,
+                                      customer!.name,
                                       style: theme.textTheme.titleLarge
                                           ?.copyWith(
                                             fontWeight: FontWeight.bold,
@@ -152,15 +153,21 @@ class HomePage extends BaseView<ProfileController> {
                             ),
                           ),
                           const Spacer(),
-                          IconButton(
-                            onPressed: () =>
-                                Get.toNamed(AppRoutes.contactOrganization),
-                            icon: Icon(
-                              Icons.contact_support_outlined,
-                              color: colorScheme.primary,
-                            ),
-                            tooltip: "Contact",
-                          ),
+                          Obx(() {
+                            final org = controller.organization.value;
+                            if (org == null || org.whatsappUrl.isEmpty) {
+                              return const SizedBox.shrink();
+                            }
+                            return IconButton(
+                              onPressed: () =>
+                                  _launchExternalUrl(org.whatsappUrl),
+                              icon: const FaIcon(
+                                FontAwesomeIcons.whatsapp,
+                                color: Color(0xFF25D366),
+                              ),
+                              tooltip: "Contact",
+                            );
+                          }),
                           IconButton(
                             onPressed: () =>
                                 Get.toNamed(AppRoutes.notifications),
@@ -180,9 +187,14 @@ class HomePage extends BaseView<ProfileController> {
                         ],
                       ),
                       const SizedBox(height: 24),
-                      if (org != null &&
-                          (org.logo.isNotEmpty || org.name.isNotEmpty))
-                        Container(
+
+                      Obx(() {
+                        final org = controller.organization.value;
+                        if (org == null ||
+                            (org.logo.isEmpty && org.name.isEmpty)) {
+                          return const SizedBox.shrink();
+                        }
+                        return Container(
                           width: double.infinity,
                           margin: const EdgeInsets.only(bottom: 24),
                           padding: const EdgeInsets.all(16),
@@ -224,7 +236,9 @@ class HomePage extends BaseView<ProfileController> {
                                 ),
                             ],
                           ),
-                        ),
+                        );
+                      }),
+
                       if (hasOpenInvoices) ...[
                         _buildActionRequiredCard(
                           context,
@@ -234,7 +248,8 @@ class HomePage extends BaseView<ProfileController> {
                         ),
                         const SizedBox(height: 32),
                       ],
-                      if (nextAppointments.isNotEmpty) ...[
+
+                      if (nextAppointments!.isNotEmpty) ...[
                         Text(
                           "Volgende afspraken",
                           style: theme.textTheme.titleSmall?.copyWith(
@@ -264,6 +279,7 @@ class HomePage extends BaseView<ProfileController> {
                         ),
                         const SizedBox(height: 32),
                       ],
+
                       Container(
                         decoration: BoxDecoration(
                           color: theme.cardColor,
@@ -302,6 +318,7 @@ class HomePage extends BaseView<ProfileController> {
                         ).paddingAll(16),
                       ),
                       const SizedBox(height: 32),
+
                       Row(
                         children: [
                           Expanded(
@@ -327,10 +344,10 @@ class HomePage extends BaseView<ProfileController> {
                       ),
                       const SizedBox(height: 24),
                     ],
-                  ).paddingAll(24),
-                ],
-              );
-            }),
+                  ).paddingAll(24);
+                }),
+              ],
+            ),
           ),
         ),
       ),
@@ -391,7 +408,6 @@ class HomePage extends BaseView<ProfileController> {
   Widget _buildNextAppointmentCard(BuildContext context, ScheduleItem item) {
     final theme = context.theme;
     final colorScheme = theme.colorScheme;
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -470,7 +486,6 @@ class HomePage extends BaseView<ProfileController> {
     const dangerColor = Color(0xFFF51853);
     const dangerBgColor = Color(0xFFFFF0F4);
     final theme = context.theme;
-
     return Container(
       decoration: BoxDecoration(
         color: dangerBgColor,
@@ -564,7 +579,6 @@ class HomePage extends BaseView<ProfileController> {
 
   void _showStayInLoopSheet(BuildContext context) {
     final theme = context.theme;
-
     Get.bottomSheet(
       Container(
         padding: const EdgeInsets.all(24),
@@ -637,13 +651,9 @@ class HomePage extends BaseView<ProfileController> {
                     );
                     return;
                   }
-
                   if (!status.isGranted) {
                     final result = await Permission.notification.request();
-
-                    if (result.isGranted) {
-                      await controller.syncDeviceData();
-                    }
+                    if (result.isGranted) await controller.syncDeviceData();
                   } else {
                     await controller.syncDeviceData();
                   }
