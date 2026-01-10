@@ -24,9 +24,11 @@ class ApiConfig {
             onError: (error, handler) async {
               if (error.response?.statusCode == 401 ||
                   error.response?.statusCode == 403) {
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.clear();
-                Get.offAllNamed(AppRoutes.organizationCode);
+                if (!error.requestOptions.path.contains('login/')) {
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.clear();
+                  Get.offAllNamed(AppRoutes.organizationCode);
+                }
               }
               handler.next(error);
             },

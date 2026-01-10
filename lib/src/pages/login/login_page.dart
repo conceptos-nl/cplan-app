@@ -95,11 +95,16 @@ class LoginPage extends StatelessWidget {
                   text: "Volgende",
                   onPressed: (!orgReady || isLoading)
                       ? null
-                      : () => controller.login(
-                          _userIdController.text.trim(),
-                          _accessCodeController.text.trim(),
-                          explicitOrgCode: orgCodeArg,
-                        ),
+                      : () async {
+                          final success = await controller.login(
+                            _userIdController.text.trim(),
+                            _accessCodeController.text.trim(),
+                            explicitOrgCode: orgCodeArg,
+                          );
+                          if (!success) {
+                            _accessCodeController.clear();
+                          }
+                        },
                 ),
 
                 const SizedBox(height: 24),

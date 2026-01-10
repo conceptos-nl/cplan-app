@@ -61,7 +61,7 @@ class AuthController extends GetxController {
     }
   }
 
-  Future<void> login(
+  Future<bool> login(
     String userId,
     String accessCode, {
     String? explicitOrgCode,
@@ -74,7 +74,7 @@ class AuthController extends GetxController {
 
     if (codeToUse == null) {
       Get.snackbar("Fout", "Organisatie code ontbreekt. Start opnieuw.");
-      return;
+      return false;
     }
 
     try {
@@ -89,14 +89,17 @@ class AuthController extends GetxController {
 
         Get.put(ProfileController(), permanent: true);
         Get.offAllNamed(AppRoutes.home);
+        return true;
       } else {
         Get.snackbar("Login Mislukt", "Ongeldige gegevens");
+        return false;
       }
     } catch (e) {
       Get.snackbar(
         "Fout",
         "Er is iets misgegaan. Neem contact op met support.",
       );
+      return false;
     } finally {
       isLoading.value = false;
     }
