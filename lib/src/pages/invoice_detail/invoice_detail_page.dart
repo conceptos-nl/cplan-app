@@ -26,6 +26,17 @@ class InvoiceDetailPage extends BaseView<ProfileController> {
     }
   }
 
+  Future<void> _viewInvoicePdf(String? urlString) async {
+    if (urlString == null || urlString.isEmpty) {
+      Get.snackbar("Fout", "Geen factuur PDF beschikbaar");
+      return;
+    }
+    final Uri url = Uri.parse(urlString);
+    if (!await launchUrl(url, mode: LaunchMode.inAppBrowserView)) {
+      Get.snackbar("Fout", "Kon factuur niet laden");
+    }
+  }
+
   Future<void> _launchPaymentUrl(String? urlString) async {
     if (urlString == null || urlString.isEmpty) {
       Get.snackbar("Fout", "Geen betaallink beschikbaar");
@@ -236,22 +247,48 @@ class InvoiceDetailPage extends BaseView<ProfileController> {
             ],
           ).paddingAll(24),
         ),
-        bottomNavigationBar: isOpen
-            ? Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: theme.scaffoldBackgroundColor,
-                  border: Border(top: BorderSide(color: theme.dividerColor)),
-                ),
-                child: SafeArea(
-                  child: PrimaryButton(
+        bottomNavigationBar: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: theme.scaffoldBackgroundColor,
+            border: Border(top: BorderSide(color: theme.dividerColor)),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isOpen) ...[
+                  PrimaryButton(
                     text:
                         "Direct betalen € ${(invoice.amount - invoice.amountPayed).toStringAsFixed(2)}",
                     onPressed: () => _launchPaymentUrl(paymentUrl),
                   ),
+                  const SizedBox(height: 12),
+                ],
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      side: BorderSide(color: colorScheme.primary),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () => _viewInvoicePdf(invoice.invoicePDFUrl),
+                    child: Text(
+                      "Bekijk Factuur",
+                      style: TextStyle(
+                        color: colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
                 ),
-              )
-            : null,
+              ],
+            ),
+          ),
+        ),
       );
     });
   }

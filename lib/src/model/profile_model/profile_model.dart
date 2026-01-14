@@ -112,6 +112,7 @@ class Invoice {
   final double amountPayed;
   final String status;
   final String paymentType;
+  final String invoicePDFUrl;
 
   Invoice({
     required this.invoiceNo,
@@ -122,6 +123,7 @@ class Invoice {
     required this.amountPayed,
     required this.status,
     required this.paymentType,
+    required this.invoicePDFUrl,
   });
 
   factory Invoice.fromJson(Map<String, dynamic> json) {
@@ -135,6 +137,7 @@ class Invoice {
           double.tryParse(json['amount_payed']?.toString() ?? '0') ?? 0.0,
       status: json['status'] ?? '',
       paymentType: json['payment_type'] ?? '',
+      invoicePDFUrl: json['invoice_url'] ?? '',
     );
   }
 }
