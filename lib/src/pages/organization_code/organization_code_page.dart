@@ -69,7 +69,14 @@ class OrganizationCodePage extends BaseView<AuthController> {
                               keyboardType: TextInputType.number,
                               inputFormatters: [
                                 FilteringTextInputFormatter.digitsOnly,
+                                LengthLimitingTextInputFormatter(5),
                               ],
+                              onChanged: (val) {
+                                if (val.length == 5) {
+                                  FocusManager.instance.primaryFocus?.unfocus();
+                                  controller.fetchOrg(val.trim());
+                                }
+                              },
                             ),
                           ),
                           const SizedBox(width: 12),
