@@ -8,7 +8,6 @@ class AppRoutes {
   static const String notifications = '/notifications';
   static const String messageDetail = '/messageDetail';
   static const String contactOrganization = '/contactOrganization';
-  // static const String notificationPermission = '/notification-permission';
   static const String organizationCode = '/organization-code';
   static const String profile = '/profile';
 }

@@ -4,7 +4,6 @@ import 'package:ivo_service_app/src/pages/home/home_page.dart';
 import 'package:ivo_service_app/src/pages/invoice_detail/invoice_detail_page.dart';
 import 'package:ivo_service_app/src/pages/invoices/invoices_page.dart';
 import 'package:ivo_service_app/src/pages/login/login_page.dart';
-// import 'package:ivo_service_app/src/pages/notification_permission/notification_permission_page.dart';
 import 'package:ivo_service_app/src/pages/notifications/message_detail_page.dart';
 import 'package:ivo_service_app/src/pages/notifications/notification_page.dart';
 import 'package:ivo_service_app/src/pages/organization_code/organization_code_page.dart';
@@ -28,10 +27,6 @@ class AppPages {
       transition: Transition.cupertino,
     ),
     GetPage(name: AppRoutes.scheduleList, page: () => ScheduleListPage()),
-    // GetPage(
-    //   name: AppRoutes.notificationPermission,
-    //   page: () => NotificationPermissionPage(),
-    // ),
     GetPage(
       name: AppRoutes.organizationCode,
       page: () => OrganizationCodePage(),

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:get/get.dart';
 import 'package:ivo_service_app/src/routes/app_routes.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ivo_service_app/src/controller/profile_controller/profile_controller.dart';
 
 class ApiConfig {
   static const String _baseUrl = 'https://api.cplan.nl/v1/app/';
@@ -27,6 +28,7 @@ class ApiConfig {
                 if (!error.requestOptions.path.contains('login/')) {
                   final prefs = await SharedPreferences.getInstance();
                   await prefs.clear();
+                  Get.delete<ProfileController>(force: true); 
                   Get.offAllNamed(AppRoutes.organizationCode);
                 }
               }

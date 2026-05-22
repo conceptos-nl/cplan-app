@@ -14,6 +14,9 @@ abstract class BaseView<T extends GetxController> extends StatelessWidget {
       children: [
         buildBody(context),
         Obx(() {
+          if (!Get.isRegistered<T>()) {
+            return const SizedBox.shrink();
+          }
           final bool isLoading = (controller as dynamic).isLoading.value;
 
           return isLoading

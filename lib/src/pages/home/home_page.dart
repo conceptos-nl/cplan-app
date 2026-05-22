@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
+import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:ivo_service_app/src/components/app_bottom_bar/app_bottom_bar.dart';
 import 'package:ivo_service_app/src/components/base/base_view.dart';
 import 'package:ivo_service_app/src/controller/profile_controller/profile_controller.dart';
 import 'package:ivo_service_app/src/model/profile_model/profile_model.dart';
 import 'package:ivo_service_app/src/routes/app_routes.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:snow_fall_animation/snow_fall_animation.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class HomePage extends BaseView<ProfileController> {
@@ -63,291 +62,263 @@ class HomePage extends BaseView<ProfileController> {
           onRefresh: controller.refreshProfile,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            child: Stack(
-              children: [
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: ClipRect(
-                    child: SizedBox(
-                      height: 300,
-                      child: const IgnorePointer(
-                        child: SnowFallAnimation(
-                          config: SnowfallConfig(
-                            numberOfSnowflakes: 60,
-                            speed: 0.5,
-                          ),
-                        ),
-                      ),
-                    ),
+            child: Obx(() {
+              final profile = controller.profile.value;
+              if (controller.isLoading.value && profile == null) {
+                return const SizedBox.shrink();
+              }
+
+              if (profile == null && !controller.isLoading.value) {
+                return Center(
+                  child: Text(
+                    controller.errorMessage.value.isNotEmpty
+                        ? controller.errorMessage.value
+                        : "Geen gegevens gevonden",
                   ),
-                ),
+                ).paddingAll(24);
+              }
 
-                Obx(() {
-                  final profile = controller.profile.value;
-                  if (controller.isLoading.value && profile == null) {
-                    return const SizedBox.shrink();
-                  }
+              final customer = profile?.customer;
+              if (customer == null) return const SizedBox.shrink();
+              final invoiceData = profile?.invoices;
+              final hasOpenInvoices = (invoiceData?.totalOpenInvoices ?? 0) > 0;
+              final nextAppointments = profile?.schedule.next.take(4).toList();
 
-                  if (profile == null && !controller.isLoading.value) {
-                    return Center(
-                      child: Text(
-                        controller.errorMessage.value.isNotEmpty
-                            ? controller.errorMessage.value
-                            : "Geen gegevens gevonden",
-                      ),
-                    ).paddingAll(24);
-                  }
-
-                  final customer = profile?.customer;
-                  final invoiceData = profile?.invoices;
-                  final hasOpenInvoices = invoiceData!.totalOpenInvoices > 0;
-                  final nextAppointments = profile?.schedule.next
-                      .take(4)
-                      .toList();
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Row(
-                        children: [
-                          InkWell(
-                            onTap: () => Get.toNamed(AppRoutes.profile),
-                            borderRadius: BorderRadius.circular(8),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 48,
-                                  height: 48,
-                                  decoration: BoxDecoration(
-                                    color: colorScheme.primary.withValues(
-                                      alpha: 0.1,
-                                    ),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    Icons.person,
-                                    color: colorScheme.primary,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      "Welkom terug,",
-                                      style: theme.textTheme.bodyMedium,
-                                    ),
-                                    Text(
-                                      customer!.name,
-                                      style: theme.textTheme.titleLarge
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 18,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          const Spacer(),
-                          Obx(() {
-                            final org = controller.organization.value;
-                            if (org == null || org.whatsappUrl.isEmpty) {
-                              return const SizedBox.shrink();
-                            }
-                            return IconButton(
-                              onPressed: () =>
-                                  _launchExternalUrl(org.whatsappUrl),
-                              icon: const FaIcon(
-                                FontAwesomeIcons.whatsapp,
-                                color: Color(0xFF25D366),
-                              ),
-                              tooltip: "Contact",
-                            );
-                          }),
-                          IconButton(
-                            onPressed: () =>
-                                Get.toNamed(AppRoutes.notifications),
-                            icon: Obx(() {
-                              final unreadCount =
-                                  controller.profile.value?.messages
-                                      .where((m) => m.readStatus == "0")
-                                      .length ??
-                                  0;
-                              return Badge(
-                                isLabelVisible: unreadCount > 0,
-                                label: Text("$unreadCount"),
-                                child: const Icon(Icons.notifications_outlined),
-                              );
-                            }),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-
-                      Obx(() {
-                        final org = controller.organization.value;
-                        if (org == null ||
-                            (org.logo.isEmpty && org.name.isEmpty)) {
-                          return const SizedBox.shrink();
-                        }
-                        return Container(
-                          width: double.infinity,
-                          margin: const EdgeInsets.only(bottom: 24),
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: theme.cardColor,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: theme.dividerColor.withValues(alpha: 0.5),
-                            ),
-                            boxShadow: [
-                              if (theme.brightness == Brightness.light)
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.03),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                            ],
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              if (org.logo.isNotEmpty) ...[
-                                Image.network(
-                                  org.logo,
-                                  height: 60,
-                                  fit: BoxFit.contain,
-                                  errorBuilder: (c, o, s) => const SizedBox(),
-                                ),
-                                const SizedBox(height: 12),
-                              ],
-                              if (org.name.isNotEmpty)
-                                Text(
-                                  org.name,
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                            ],
-                          ),
-                        );
-                      }),
-
-                      if (hasOpenInvoices) ...[
-                        _buildActionRequiredCard(
-                          context,
-                          count: invoiceData.totalOpenInvoices,
-                          totalAmount: invoiceData.totalOpenAmount,
-                          paymentUrl: invoiceData.paymentUrl,
-                        ),
-                        const SizedBox(height: 32),
-                      ],
-
-                      if (nextAppointments!.isNotEmpty) ...[
-                        Text(
-                          "Volgende afspraken",
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          height: 130,
-                          child: ListView.separated(
-                            scrollDirection: Axis.horizontal,
-                            physics: const BouncingScrollPhysics(),
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            itemCount: nextAppointments.length,
-                            separatorBuilder: (_, _) =>
-                                const SizedBox(width: 12),
-                            itemBuilder: (context, index) {
-                              return SizedBox(
-                                width: MediaQuery.of(context).size.width * 0.82,
-                                child: _buildNextAppointmentCard(
-                                  context,
-                                  nextAppointments[index],
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                      ],
-
-                      Container(
-                        decoration: BoxDecoration(
-                          color: theme.cardColor,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: theme.dividerColor),
-                        ),
+                      InkWell(
+                        onTap: () => Get.toNamed(AppRoutes.profile),
+                        borderRadius: BorderRadius.circular(8),
                         child: Row(
                           children: [
-                            Icon(
-                              Icons.location_on_outlined,
-                              color: colorScheme.primary,
-                              size: 28,
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "Adres",
-                                    style: theme.textTheme.labelLarge?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    "${customer.address} ${customer.number}, ${customer.city}",
-                                    style: theme.textTheme.bodyMedium,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
+                            Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: colorScheme.primary.withValues(
+                                  alpha: 0.1,
+                                ),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.person,
+                                color: colorScheme.primary,
                               ),
                             ),
+                            const SizedBox(width: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Welkom terug,",
+                                  style: theme.textTheme.bodyMedium,
+                                ),
+                                Text(
+                                  customer.name,
+                                  style: theme.textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ],
-                        ).paddingAll(16),
+                        ),
                       ),
-                      const SizedBox(height: 32),
+                      const Spacer(),
+                      Obx(() {
+                        final org = controller.organization.value;
+                        if (org == null || org.whatsappUrl.isEmpty) {
+                          return const SizedBox.shrink();
+                        }
+                        return IconButton(
+                          onPressed: () => _launchExternalUrl(org.whatsappUrl),
+                          icon: const FaIcon(
+                            FontAwesomeIcons.whatsapp,
+                            color: Color(0xFF25D366),
+                          ),
+                          tooltip: "Contact",
+                        );
+                      }),
+                      IconButton(
+                        onPressed: () => Get.toNamed(AppRoutes.notifications),
+                        icon: Obx(() {
+                          final unreadCount =
+                              controller.profile.value?.messages
+                                  .where((m) => m.readStatus == "0")
+                                  .length ??
+                              0;
+                          return Badge(
+                            isLabelVisible: unreadCount > 0,
+                            label: Text("$unreadCount"),
+                            child: const Icon(Icons.notifications_outlined),
+                          );
+                        }),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
 
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildGridActionCard(
-                              context,
-                              title: "Alle afspraken",
-                              icon: Icons.calendar_month_outlined,
-                              color: Colors.blue,
-                              onTap: () => Get.toNamed(AppRoutes.scheduleList),
+                  Obx(() {
+                    final org = controller.organization.value;
+                    if (org == null || (org.logo.isEmpty && org.name.isEmpty)) {
+                      return const SizedBox.shrink();
+                    }
+                    return Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 24),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: theme.cardColor,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: theme.dividerColor.withValues(alpha: 0.5),
+                        ),
+                        boxShadow: [
+                          if (theme.brightness == Brightness.light)
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.03),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
                             ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildGridActionCard(
-                              context,
-                              title: "Alle facturen",
-                              icon: Icons.receipt_long_outlined,
-                              color: colorScheme.secondary,
-                              onTap: () => Get.toNamed(AppRoutes.invoiceList),
-                            ),
-                          ),
                         ],
                       ),
-                      const SizedBox(height: 24),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (org.logo.isNotEmpty) ...[
+                            Image.network(
+                              org.logo,
+                              height: 60,
+                              fit: BoxFit.contain,
+                              errorBuilder: (c, o, s) => const SizedBox(),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+                          if (org.name.isNotEmpty)
+                            Text(
+                              org.name,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                        ],
+                      ),
+                    );
+                  }),
+
+                  if (hasOpenInvoices) ...[
+                    _buildActionRequiredCard(
+                      context,
+                      count: invoiceData?.totalOpenInvoices ?? 0,
+                      totalAmount: invoiceData?.totalOpenAmount ?? 0.0,
+                      paymentUrl: invoiceData?.paymentUrl ?? '',
+                    ),
+                    const SizedBox(height: 32),
+                  ],
+
+                  if (nextAppointments != null &&
+                      nextAppointments.isNotEmpty) ...[
+                    Text(
+                      "Volgende afspraken",
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 130,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        itemCount: nextAppointments.length,
+                        separatorBuilder: (_, i) => const SizedBox(width: 12),
+                        itemBuilder: (context, index) {
+                          return SizedBox(
+                            width: MediaQuery.of(context).size.width * 0.82,
+                            child: _buildNextAppointmentCard(
+                              context,
+                              nextAppointments[index],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                  ],
+
+                  Container(
+                    decoration: BoxDecoration(
+                      color: theme.cardColor,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: theme.dividerColor),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.location_on_outlined,
+                          color: colorScheme.primary,
+                          size: 28,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Adres",
+                                style: theme.textTheme.labelLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                "${customer.address} ${customer.number}, ${customer.city}",
+                                style: theme.textTheme.bodyMedium,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ).paddingAll(16),
+                  ),
+                  const SizedBox(height: 32),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildGridActionCard(
+                          context,
+                          title: "Alle afspraken",
+                          icon: Icons.calendar_month_outlined,
+                          color: Colors.blue,
+                          onTap: () => Get.toNamed(AppRoutes.scheduleList),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildGridActionCard(
+                          context,
+                          title: "Alle facturen",
+                          icon: Icons.receipt_long_outlined,
+                          color: colorScheme.secondary,
+                          onTap: () => Get.toNamed(AppRoutes.invoiceList),
+                        ),
+                      ),
                     ],
-                  ).paddingAll(24);
-                }),
-              ],
-            ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+              ).paddingAll(24);
+            }),
           ),
         ),
       ),
@@ -625,8 +596,19 @@ class HomePage extends BaseView<ProfileController> {
               child: ElevatedButton(
                 onPressed: () async {
                   Get.back();
-                  var status = await Permission.notification.status;
-                  if (status.isPermanentlyDenied) {
+
+                  final hasPermission = OneSignal.Notifications.permission;
+
+                  if (hasPermission) {
+                    await controller.syncDeviceData();
+                    return;
+                  }
+                  final accepted =
+                      await OneSignal.Notifications.requestPermission(true);
+
+                  if (accepted) {
+                    await controller.syncDeviceData();
+                  } else {
                     Get.defaultDialog(
                       title: "Meldingen zijn uitgeschakeld",
                       titleStyle: theme.textTheme.titleLarge?.copyWith(
@@ -635,27 +617,18 @@ class HomePage extends BaseView<ProfileController> {
                       content: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 30),
                         child: Text(
-                          "Uw meldingen zijn geblokkeerd. Ga naar Instellingen > Meldingen en schakel ze in om updates te ontvangen.",
+                          "Uw meldingen zijn geblokkeerd. Ga naar de Instellingen van uw telefoon en schakel meldingen in voor deze app.",
                           textAlign: TextAlign.center,
                           style: theme.textTheme.bodyMedium,
                         ),
                       ),
-                      textConfirm: "Open Instellingen",
-                      textCancel: "Annuleren",
+                      textConfirm: "Begrepen",
                       confirmTextColor: Colors.white,
                       buttonColor: theme.colorScheme.primary,
                       onConfirm: () {
                         Get.back();
-                        openAppSettings();
                       },
                     );
-                    return;
-                  }
-                  if (!status.isGranted) {
-                    final result = await Permission.notification.request();
-                    if (result.isGranted) await controller.syncDeviceData();
-                  } else {
-                    await controller.syncDeviceData();
                   }
                 },
                 style: ElevatedButton.styleFrom(

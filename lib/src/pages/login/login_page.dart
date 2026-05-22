@@ -7,9 +7,6 @@ import 'package:ivo_service_app/src/controller/auth_controller/auth_controller.d
 
 class LoginPage extends StatelessWidget {
   LoginPage({super.key});
-
-  final TextEditingController _userIdController = TextEditingController();
-  final TextEditingController _accessCodeController = TextEditingController();
   final AuthController controller = Get.find<AuthController>();
 
   @override
@@ -39,7 +36,12 @@ class LoginPage extends StatelessWidget {
                       children: [
                         CircleAvatar(
                           radius: 40,
-                          backgroundImage: NetworkImage(org.logo),
+                          backgroundImage: (org.logo.isNotEmpty) 
+                              ? NetworkImage(org.logo) 
+                              : null,
+                          child: (org.logo.isEmpty) 
+                              ? const Icon(Icons.business, size: 40) 
+                              : null,
                         ),
                         const SizedBox(height: 12),
                         Text(
@@ -71,7 +73,7 @@ class LoginPage extends StatelessWidget {
                 const SizedBox(height: 32),
 
                 CustomTextField(
-                  controller: _userIdController,
+                  controller: controller.userIdController,
                   label: "Klantnummer",
                   placeholder: "Vul uw klantnummer in",
                   prefixIcon: Icons.person_outline,
@@ -81,7 +83,7 @@ class LoginPage extends StatelessWidget {
                 const SizedBox(height: 12),
 
                 CustomTextField(
-                  controller: _accessCodeController,
+                  controller: controller.accessCodeController,
                   label: "Code",
                   placeholder: "Vul uw toegangscode in",
                   prefixIcon: Icons.lock_outline,
@@ -93,16 +95,16 @@ class LoginPage extends StatelessWidget {
                 const SizedBox(height: 40),
                 PrimaryButton(
                   text: "Volgende",
-                  onPressed: (!orgReady || isLoading)
+                  onPressed: (isLoading || (!orgReady && orgCodeArg == null))
                       ? null
                       : () async {
                           final success = await controller.login(
-                            _userIdController.text.trim(),
-                            _accessCodeController.text.trim(),
+                            controller.userIdController.text.trim(),
+                            controller.accessCodeController.text.trim(),
                             explicitOrgCode: orgCodeArg,
                           );
                           if (!success) {
-                            _accessCodeController.clear();
+                            controller.accessCodeController.clear();
                           }
                         },
                 ),

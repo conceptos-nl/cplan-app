@@ -10,8 +10,6 @@ import 'package:ivo_service_app/src/routes/app_routes.dart';
 class OrganizationCodePage extends BaseView<AuthController> {
   OrganizationCodePage({super.key});
 
-  final TextEditingController _codeController = TextEditingController();
-
   @override
   final AuthController controller = Get.put(AuthController());
 
@@ -62,7 +60,7 @@ class OrganizationCodePage extends BaseView<AuthController> {
                         children: [
                           Expanded(
                             child: CustomTextField(
-                              controller: _codeController,
+                              controller: controller.codeController,
                               label: "Code van de glazenwasser",
                               placeholder: "Code hier invoeren",
                               prefixIcon: Icons.domain,
@@ -100,7 +98,7 @@ class OrganizationCodePage extends BaseView<AuthController> {
                                         FocusManager.instance.primaryFocus
                                             ?.unfocus();
                                         controller.fetchOrg(
-                                          _codeController.text.trim(),
+                                          controller.codeController.text.trim(),
                                         );
                                       },
                                 child: controller.isLoading.value
@@ -147,11 +145,13 @@ class OrganizationCodePage extends BaseView<AuthController> {
                                       color:
                                           colorScheme.surfaceContainerHighest,
                                       shape: BoxShape.circle,
-                                      image: DecorationImage(
-                                        image: NetworkImage(org.logo),
-                                        fit: BoxFit.cover,
-                                        onError: (_, _) {},
-                                      ),
+                                      image: org.logo.isNotEmpty
+                                          ? DecorationImage(
+                                              image: NetworkImage(org.logo),
+                                              fit: BoxFit.cover,
+                                              onError: (_, _) {},
+                                            )
+                                          : null,
                                     ),
                                   ),
                                   const SizedBox(width: 16),
@@ -201,14 +201,14 @@ class OrganizationCodePage extends BaseView<AuthController> {
                       Obx(
                         () => PrimaryButton(
                           text: "Volgende",
-                          onPressed:
-                              controller.isLoading.value ||
-                                  controller.organization.value == null
+                          isLoading: controller.isLoading.value,
+                          onPressed: (controller.organization.value == null)
                               ? null
                               : () async {
                                   Get.toNamed(
                                     AppRoutes.login,
-                                    arguments: _codeController.text.trim(),
+                                    arguments: controller.codeController.text
+                                        .trim(),
                                   );
                                 },
                         ),

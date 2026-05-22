@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:app_links/app_links.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:ivo_service_app/src/model/auth_model/auth_model.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class LinkService extends GetxService {
   final _appLinks = AppLinks();
@@ -11,29 +11,45 @@ class LinkService extends GetxService {
   final Rx<MagicLinkData?> pendingMagicLink = Rx<MagicLinkData?>(null);
 
   Future<LinkService> init() async {
-    final initialUri = await _appLinks.getInitialLink();
-    if (initialUri != null) {
-      await _handleUri(initialUri);
+    try {
+      final initialUri = await _appLinks.getInitialLink();
+      if (initialUri != null) {
+        _parseUri(initialUri);
+      }
+    } catch (e) {
+      debugPrint("Error reading initial link: $e");
     }
-    _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
-      _handleUri(uri);
-    });
+
+    _linkSubscription = _appLinks.uriLinkStream.listen(
+      (uri) {
+        _parseUri(uri);
+      },
+      onError: (err) {
+        debugPrint("Link stream error: $err");
+      },
+    );
 
     return this;
   }
 
-  Future<void> _handleUri(Uri uri) async {
-    final prefs = await SharedPreferences.getInstance();
-    if (prefs.getString('auth_token') != null) {
-      return;
-    }
-    final org = uri.queryParameters['org'];
-    final user = uri.queryParameters['user'];
-    final code = uri.queryParameters['code'];
+  void _parseUri(Uri uri) {
+  var org = uri.queryParameters['org'];
+  var user = uri.queryParameters['user'];
+  var code = uri.queryParameters['code'];
 
-    if (org != null && user != null && code != null) {
-      pendingMagicLink.value = MagicLinkData(org: org, user: user, code: code);
-    }
+  if (org == null && uri.toString().contains('?')) {
+    final fallbackQuery = Uri.splitQueryString(uri.toString().split('?').last);
+    org ??= fallbackQuery['org'];
+    user ??= fallbackQuery['user'];
+    code ??= fallbackQuery['code'];
+  }
+
+  if (org == null || user == null || code == null) return;
+  pendingMagicLink.value = MagicLinkData(org: org, user: user, code: code);
+}
+
+  void consumeLink() {
+    pendingMagicLink.value = null;
   }
 
   @override

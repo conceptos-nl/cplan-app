@@ -1,5 +1,5 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:ivo_service_app/src/controller/auth_controller/link_service.dart';
 import 'package:ivo_service_app/src/controller/profile_controller/profile_controller.dart';
 import 'package:ivo_service_app/src/model/auth_model/auth_model.dart';
 import 'package:ivo_service_app/src/repo/auth_repo/auth_repo.dart';
@@ -8,38 +8,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthController extends GetxController {
   final AuthRepository _repo = AuthRepository();
+  final TextEditingController codeController = TextEditingController();
+  final TextEditingController userIdController = TextEditingController();
+  final TextEditingController accessCodeController = TextEditingController();
 
   var isLoading = false.obs;
   final Rx<Organization?> organization = Rx<Organization?>(null);
 
   String? _currentOrgCode;
-
-  @override
-  void onInit() {
-    super.onInit();
-
-    _checkAndHandleMagicLink();
-
-    ever(Get.find<LinkService>().pendingMagicLink, (MagicLinkData? data) {
-      if (data != null) {
-        _checkAndHandleMagicLink();
-      }
-    });
-  }
-
-  Future<void> _checkAndHandleMagicLink() async {
-    final linkService = Get.find<LinkService>();
-    final data = linkService.pendingMagicLink.value;
-
-    if (data != null && data.isValid) {
-      linkService.pendingMagicLink.value = null;
-
-      await fetchOrg(data.org);
-      if (organization.value != null) {
-        await login(data.user, data.code);
-      }
-    }
-  }
 
   Future<void> fetchOrg(String code) async {
     if (code.isEmpty) return;
@@ -103,5 +79,13 @@ class AuthController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  @override
+  void onClose() {
+    codeController.dispose();
+    userIdController.dispose();
+    accessCodeController.dispose();
+    super.onClose();
   }
 }

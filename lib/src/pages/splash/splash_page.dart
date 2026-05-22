@@ -7,7 +7,7 @@ class SplashPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Get.put(SplashController());
+    Get.find<SplashController>();
 
     return Scaffold(
       backgroundColor: const Color(0xFF645CFF),

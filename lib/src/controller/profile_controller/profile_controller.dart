@@ -1,14 +1,14 @@
 import 'package:app_badge_plus/app_badge_plus.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:ivo_service_app/src/model/auth_model/auth_model.dart';
 import 'package:ivo_service_app/src/model/profile_model/profile_model.dart';
 import 'package:ivo_service_app/src/repo/auth_repo/auth_repo.dart';
 import 'package:ivo_service_app/src/repo/profile_repo/profile_repo.dart';
 import 'package:ivo_service_app/src/routes/app_routes.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 
 class ProfileController extends GetxController with WidgetsBindingObserver {
   final ProfileRepository _repo = ProfileRepository();
@@ -29,7 +29,6 @@ class ProfileController extends GetxController with WidgetsBindingObserver {
   void onInit() {
     super.onInit();
     WidgetsBinding.instance.addObserver(this);
-    _setupNotificationListeners();
     fetchUserProfile();
     syncDeviceData();
   }
@@ -53,56 +52,6 @@ class ProfileController extends GetxController with WidgetsBindingObserver {
     final difference = now.difference(_lastFetchTime!);
     if (difference.inSeconds >= 60) {
       fetchUserProfile(showLoading: false);
-    }
-  }
-
-  void _setupNotificationListeners() {
-    FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
-
-    FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationClick);
-
-    FirebaseMessaging.instance.getInitialMessage().then((
-      RemoteMessage? message,
-    ) {
-      if (message != null) {
-        _handleNotificationClick(message);
-      }
-    });
-
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      final String? messageId = message.data['id']?.toString();
-      if (messageId != null) {
-        _reportDelivery(messageId);
-      }
-      fetchUserProfile(showLoading: false);
-    });
-  }
-
-  Future<void> _reportDelivery(String messageId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
-    final orgId = prefs.getString('org_id');
-    if (token != null && orgId != null) {
-      await _repo.updateStatus(
-        orgId: orgId,
-        token: token,
-        messageId: messageId,
-        received: true,
-      );
-    }
-  }
-
-  void _handleNotificationClick(RemoteMessage message) {
-    final data = message.data;
-    final String? messageId = data['id']?.toString();
-
-    if (data['type'] == 'message' && messageId != null) {
-      markMessageAsRead(messageId);
-      Get.toNamed('${AppRoutes.messageDetail}/$messageId');
     }
   }
 
@@ -181,7 +130,7 @@ class ProfileController extends GetxController with WidgetsBindingObserver {
       _lastFetchTime = DateTime.now();
     } catch (e) {
       if (showLoading) {
-        _handleSessionExpiry("Apparaat niet meer actief, log opnieuw in.");
+        errorMessage.value = "Kan profiel niet laden. Controleer uw netwerkverbinding.";
       }
     } finally {
       isLoading.value = false;
@@ -191,6 +140,7 @@ class ProfileController extends GetxController with WidgetsBindingObserver {
   Future<void> _handleSessionExpiry(String reason) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
+    Get.delete<ProfileController>(force: true);
     Get.offAllNamed(AppRoutes.organizationCode);
     Get.snackbar("Sessie beëindigd", reason);
   }
@@ -215,8 +165,7 @@ class ProfileController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> syncDeviceData() async {
-    final status = await Permission.notification.status;
-    isNotificationEnabled.value = status.isGranted;
+    isNotificationEnabled.value = OneSignal.Notifications.permission;
 
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
