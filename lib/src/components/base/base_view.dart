@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
+import 'package:ivo_service_app/src/controller/base_controller/base_controller.dart';
 
-abstract class BaseView<T extends GetxController> extends StatelessWidget {
+abstract class BaseView<T extends BaseController> extends StatelessWidget {
   const BaseView({super.key});
 
   T get controller;
@@ -17,17 +18,16 @@ abstract class BaseView<T extends GetxController> extends StatelessWidget {
           if (!Get.isRegistered<T>()) {
             return const SizedBox.shrink();
           }
-          final bool isLoading = (controller as dynamic).isLoading.value;
+
+          final bool isLoading = controller.isLoading.value;
 
           return isLoading
               ? Container(
                   color: Colors.deepPurpleAccent.withValues(alpha: 0.4),
                   child: const Center(
-                    child: Center(
-                      child: SpinKitCubeGrid(
-                        color: Color(0xFF645CFF),
-                        size: 50.0,
-                      ),
+                    child: SpinKitCubeGrid(
+                      color: Color(0xFF645CFF),
+                      size: 50.0,
                     ),
                   ),
                 )

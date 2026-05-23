@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
+import 'package:ivo_service_app/src/controller/base_controller/base_controller.dart';
 import 'package:ivo_service_app/src/controller/profile_controller/profile_controller.dart';
 import 'package:ivo_service_app/src/model/auth_model/auth_model.dart';
 import 'package:ivo_service_app/src/repo/auth_repo/auth_repo.dart';
 import 'package:ivo_service_app/src/routes/app_routes.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class AuthController extends GetxController {
+class AuthController extends BaseController {
   final AuthRepository _repo = AuthRepository();
   final TextEditingController codeController = TextEditingController();
   final TextEditingController userIdController = TextEditingController();
   final TextEditingController accessCodeController = TextEditingController();
 
-  var isLoading = false.obs;
   final Rx<Organization?> organization = Rx<Organization?>(null);
 
   String? _currentOrgCode;
@@ -59,7 +60,8 @@ class AuthController extends GetxController {
 
       if (response.success && response.token != null) {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('auth_token', response.token!);
+        const secureStorage = FlutterSecureStorage();
+        await secureStorage.write(key: 'auth_token', value: response.token);
         await prefs.setString('user_id', userId);
         await prefs.setString('org_id', codeToUse);
 

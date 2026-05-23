@@ -7,13 +7,13 @@ environment:
   sdk: ^3.10.1
 
 dependencies:
-  device_info_plus: ^13.1.0
   get: ^4.7.3
   dio: ^5.9.0
   flutter:
     sdk: flutter
   google_fonts: ^8.1.0
-  package_info_plus: ^10.1.0
+  device_info_plus: ^11.5.0
+  package_info_plus: ^9.0.1
   shared_preferences: ^2.5.3
   url_launcher: ^6.3.2
   flutter_linkify: ^6.0.0

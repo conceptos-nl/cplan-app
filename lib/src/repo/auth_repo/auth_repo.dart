@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:ivo_service_app/src/model/auth_model/auth_model.dart';
 import 'package:ivo_service_app/src/utils/api/api_config.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -76,7 +77,8 @@ class AuthRepository {
   Future<bool> checkSession() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
+      const secureStorage = FlutterSecureStorage();
+      final token = await secureStorage.read(key: 'auth_token');
       final orgId = prefs.getString('org_id');
       if (token == null || orgId == null) return false;
       final deviceData = await getDeviceInfo();

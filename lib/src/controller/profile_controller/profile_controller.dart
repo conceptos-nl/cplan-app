@@ -1,6 +1,8 @@
 import 'package:app_badge_plus/app_badge_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
+import 'package:ivo_service_app/src/controller/base_controller/base_controller.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:ivo_service_app/src/model/auth_model/auth_model.dart';
 import 'package:ivo_service_app/src/model/profile_model/profile_model.dart';
@@ -10,14 +12,13 @@ import 'package:ivo_service_app/src/routes/app_routes.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 
-class ProfileController extends GetxController with WidgetsBindingObserver {
+class ProfileController extends BaseController with WidgetsBindingObserver {
   final ProfileRepository _repo = ProfileRepository();
   final AuthRepository _authRepo = AuthRepository();
 
   final Rx<ProfileModel?> profile = Rx<ProfileModel?>(null);
   final Rx<Organization?> organization = Rx<Organization?>(null);
 
-  final RxBool isLoading = false.obs;
   final RxString errorMessage = ''.obs;
   final RxBool isNotificationEnabled = false.obs;
   bool hasShownNotificationPrompt = false;
@@ -69,7 +70,8 @@ class ProfileController extends GetxController with WidgetsBindingObserver {
       }
 
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
+      const secureStorage = FlutterSecureStorage();
+      final token = await secureStorage.read(key: 'auth_token');
       final orgId = prefs.getString('org_id');
 
       if (token != null && orgId != null) {
@@ -99,7 +101,8 @@ class ProfileController extends GetxController with WidgetsBindingObserver {
       errorMessage.value = '';
 
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
+      const secureStorage = FlutterSecureStorage();
+      final token = await secureStorage.read(key: 'auth_token');
       final orgId = prefs.getString('org_id');
 
       if (token == null || orgId == null) {
@@ -139,7 +142,9 @@ class ProfileController extends GetxController with WidgetsBindingObserver {
 
   Future<void> _handleSessionExpiry(String reason) async {
     final prefs = await SharedPreferences.getInstance();
+    const secureStorage = FlutterSecureStorage();
     await prefs.clear();
+    await secureStorage.delete(key: 'auth_token');
     Get.delete<ProfileController>(force: true);
     Get.offAllNamed(AppRoutes.organizationCode);
     Get.snackbar("Sessie beëindigd", reason);
@@ -152,7 +157,8 @@ class ProfileController extends GetxController with WidgetsBindingObserver {
   Future<void> logout() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
+      const secureStorage = FlutterSecureStorage();
+      final token = await secureStorage.read(key: 'auth_token');
       final orgId = prefs.getString('org_id');
       if (token != null && orgId != null) {
         await _authRepo.logout(orgId, token);
@@ -168,7 +174,9 @@ class ProfileController extends GetxController with WidgetsBindingObserver {
     isNotificationEnabled.value = OneSignal.Notifications.permission;
 
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
+    const secureStorage = FlutterSecureStorage();
+
+    final token = await secureStorage.read(key: 'auth_token');
     final orgId = prefs.getString('org_id');
 
     if (token != null && orgId != null) {

@@ -34,11 +34,6 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       debugShowCheckedModeBanner: false,
-      onUnknownRoute: (settings) => MaterialPageRoute(
-        builder: (_) => const Scaffold(
-          body: Center(child: Text('Page not found')),
-        ),
-      ),
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:ivo_service_app/src/controller/auth_controller/link_service.dart';
@@ -28,7 +29,8 @@ class SplashController extends GetxController {
     if (data == null || !data.isValid) return;
 
     final prefs = await SharedPreferences.getInstance();
-    final currentToken = prefs.getString('auth_token');
+    const secureStorage = FlutterSecureStorage();
+    final currentToken = await secureStorage.read(key: 'auth_token');
     final currentOrg = prefs.getString('org_id');
     final currentUser = prefs.getString('user_id');
 
@@ -63,6 +65,7 @@ class SplashController extends GetxController {
       }
 
       await prefs.clear();
+      await secureStorage.delete(key: 'auth_token');
       Get.delete<ProfileController>(force: true);
     }
 
@@ -80,7 +83,8 @@ class SplashController extends GetxController {
       
       if (response.success && response.token != null) {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('auth_token', response.token!);
+        const secureStorage = FlutterSecureStorage();
+        await secureStorage.write(key: 'auth_token', value: response.token!);
         await prefs.setString('user_id', user);
         await prefs.setString('org_id', org);
 
@@ -115,7 +119,8 @@ class SplashController extends GetxController {
   Future<bool> _checkSession() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
+      const secureStorage = FlutterSecureStorage();
+      final token = await secureStorage.read(key: 'auth_token');
       final orgId = prefs.getString('org_id');
 
       if (token == null || orgId == null) return false;
@@ -130,8 +135,8 @@ class SplashController extends GetxController {
          (e.response?.statusCode == 401 || e.response?.statusCode == 403)) {
         return false;
       }
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.containsKey('auth_token'); 
+      const secureStorage = FlutterSecureStorage();
+      return await secureStorage.read(key: 'auth_token') != null;
     }
   }
 

@@ -16,22 +16,55 @@ class AppPages {
   static const initial = AppRoutes.splash;
   static final routes = [
     GetPage(name: AppRoutes.splash, page: () => const SplashPage()),
-    GetPage(name: AppRoutes.home, page: () => HomePage()),
-    GetPage(name: AppRoutes.login, page: () => LoginPage()),
-    GetPage(name: AppRoutes.invoiceList, page: () => InvoicesPage()),
-    GetPage(name: AppRoutes.invoiceDetail, page: () => InvoiceDetailPage()),
-    GetPage(name: AppRoutes.notifications, page: () => NotificationPage()),
+    GetPage(
+      name: AppRoutes.home,
+      page: () => HomePage(),
+      transition: Transition.noTransition,
+    ),
+    GetPage(
+      name: AppRoutes.login,
+      page: () => LoginPage(),
+      transition: Transition.noTransition,
+    ),
+    GetPage(
+      name: AppRoutes.invoiceList,
+      page: () => InvoicesPage(),
+      transition: Transition.noTransition,
+    ),
+    GetPage(
+      name: AppRoutes.invoiceDetail,
+      page: () => InvoiceDetailPage(),
+      transition: Transition.cupertino,
+    ),
+    GetPage(
+      name: AppRoutes.notifications,
+      page: () => NotificationPage(),
+      transition: Transition.noTransition,
+    ),
     GetPage(
       name: '${AppRoutes.messageDetail}/:id',
       page: () => MessageDetailPage(),
       transition: Transition.cupertino,
     ),
-    GetPage(name: AppRoutes.scheduleList, page: () => ScheduleListPage()),
+    GetPage(
+      name: AppRoutes.scheduleList,
+      page: () => ScheduleListPage(),
+      transition: Transition.noTransition,
+    ),
     GetPage(
       name: AppRoutes.organizationCode,
       page: () => OrganizationCodePage(),
+      transition: Transition.noTransition,
     ),
-    GetPage(name: AppRoutes.profile, page: () => ProfilePage()),
-    GetPage(name: AppRoutes.contactOrganization, page: () => ContactPage()),
+    GetPage(
+      name: AppRoutes.profile,
+      page: () => ProfilePage(),
+      transition: Transition.noTransition,
+    ),
+    GetPage(
+      name: AppRoutes.contactOrganization,
+      page: () => ContactPage(),
+      transition: Transition.noTransition,
+    ),
   ];
 }

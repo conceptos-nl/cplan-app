@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:ivo_service_app/src/routes/app_routes.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -27,7 +28,9 @@ class ApiConfig {
                   error.response?.statusCode == 403) {
                 if (!error.requestOptions.path.contains('login/')) {
                   final prefs = await SharedPreferences.getInstance();
+                  const secureStorage = FlutterSecureStorage();
                   await prefs.clear();
+                  await secureStorage.delete(key: 'auth_token');
                   Get.delete<ProfileController>(force: true); 
                   Get.offAllNamed(AppRoutes.organizationCode);
                 }
