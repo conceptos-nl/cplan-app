@@ -1,26 +1,28 @@
 import UserNotifications
 import Intents
+import OneSignalExtension
 
 class NotificationService: UNNotificationServiceExtension {
     var contentHandler: ((UNNotificationContent) -> Void)?
     var bestAttemptContent: UNMutableNotificationContent?
+    var receivedRequest: UNNotificationRequest!
 
     override func didReceive(_ request: UNNotificationRequest, withContentHandler contentHandler: @escaping (UNNotificationContent) -> Void) {
+        self.receivedRequest = request
         self.contentHandler = contentHandler
         bestAttemptContent = (request.content.mutableCopy() as? UNMutableNotificationContent)
         
         guard let bestAttemptContent = bestAttemptContent else { return }
         
-        // 1. Extract data from your custom FCM payload
         let userInfo = bestAttemptContent.userInfo
         guard let logoUrlString = userInfo["sender_logo"] as? String,
               let senderName = userInfo["sender_name"] as? String,
               let logoUrl = URL(string: logoUrlString) else {
-            contentHandler(bestAttemptContent)
+            
+            OneSignalExtension.didReceiveNotificationExtensionRequest(self.receivedRequest, with: bestAttemptContent, withContentHandler: self.contentHandler)
             return
         }
 
-        // 2. Download the Organization Logo
         URLSession.shared.downloadTask(with: logoUrl) { (location, response, error) in
             if let location = location {
                 let tmpDirectory = NSTemporaryDirectory()
@@ -29,7 +31,6 @@ class NotificationService: UNNotificationServiceExtension {
                 
                 try? FileManager.default.moveItem(at: location, to: tmpUrl)
                 
-                // 3. Create the Communication Intent
                 if #available(iOS 15.0, *) {
                     let avatar = INImage(url: tmpUrl)
                     let handle = INPersonHandle(value: senderName, type: .unknown)
@@ -37,23 +38,33 @@ class NotificationService: UNNotificationServiceExtension {
                     
                     let intent = INSendMessageIntent(recipients: nil, outgoingMessageType: .outgoingMessageText, content: bestAttemptContent.body, speakableGroupName: nil, conversationIdentifier: userInfo["id"] as? String, serviceName: nil, sender: sender, attachments: nil)
                     
-                    // 4. Inject the Intent into the notification
                     let interaction = INInteraction(intent: intent, response: nil)
                     interaction.direction = .incoming
                     interaction.donate { _ in
                         do {
                             let updatedContent = try bestAttemptContent.updating(from: intent)
-                            contentHandler(updatedContent)
+                            guard let mutableUpdatedContent = updatedContent.mutableCopy() as? UNMutableNotificationContent else {
+                                OneSignalExtension.didReceiveNotificationExtensionRequest(self.receivedRequest, with: bestAttemptContent, withContentHandler: self.contentHandler)
+                                return
+                            }
+                            OneSignalExtension.didReceiveNotificationExtensionRequest(self.receivedRequest, with: mutableUpdatedContent, withContentHandler: self.contentHandler)
                         } catch {
-                            contentHandler(bestAttemptContent)
+                            OneSignalExtension.didReceiveNotificationExtensionRequest(self.receivedRequest, with: bestAttemptContent, withContentHandler: self.contentHandler)
                         }
                     }
                 } else {
-                    contentHandler(bestAttemptContent)
+                    OneSignalExtension.didReceiveNotificationExtensionRequest(self.receivedRequest, with: bestAttemptContent, withContentHandler: self.contentHandler)
                 }
             } else {
-                contentHandler(bestAttemptContent)
+                OneSignalExtension.didReceiveNotificationExtensionRequest(self.receivedRequest, with: bestAttemptContent, withContentHandler: self.contentHandler)
             }
         }.resume()
+    }
+    
+    override func serviceExtensionTimeWillExpire() {
+        if let contentHandler = contentHandler, let bestAttemptContent = bestAttemptContent {
+            OneSignalExtension.serviceExtensionTimeWillExpireRequest(self.receivedRequest, with: self.bestAttemptContent)
+            contentHandler(bestAttemptContent)
+        }
     }
 }
