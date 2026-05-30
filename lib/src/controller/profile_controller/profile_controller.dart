@@ -44,6 +44,9 @@ class ProfileController extends BaseController with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _checkAndRefresh();
+      OneSignal.Notifications.requestPermission(false).then((_) {
+        syncDeviceData();
+      });
     }
   }
 
