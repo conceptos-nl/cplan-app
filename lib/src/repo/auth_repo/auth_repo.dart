@@ -68,6 +68,9 @@ class AuthRepository {
         "code": accessCode,
       };
       final response = await ApiConfig.dio.post('login/', data: data);
+
+      print(data);
+      print(response);
       return LoginResponse.fromJson(response.data);
     } catch (e) {
       return LoginResponse(success: false, message: e.toString());

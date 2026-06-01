@@ -2,6 +2,7 @@ import 'package:app_badge_plus/app_badge_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
+import 'package:ivo_service_app/src/controller/auth_controller/notification_service.dart';
 import 'package:ivo_service_app/src/controller/base_controller/base_controller.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:ivo_service_app/src/model/auth_model/auth_model.dart';
@@ -32,6 +33,10 @@ class ProfileController extends BaseController with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     fetchUserProfile();
     syncDeviceData();
+
+    OneSignal.Notifications.addPermissionObserver((permission) {
+      syncDeviceData();
+    });
   }
 
   @override
@@ -44,8 +49,12 @@ class ProfileController extends BaseController with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _checkAndRefresh();
-      OneSignal.Notifications.requestPermission(false).then((_) {
-        syncDeviceData();
+
+      Future.delayed(const Duration(milliseconds: 300), () {
+        final currentPermission = OneSignal.Notifications.permission;
+        if (currentPermission != isNotificationEnabled.value) {
+          syncDeviceData();
+        }
       });
     }
   }
@@ -127,6 +136,10 @@ class ProfileController extends BaseController with WidgetsBindingObserver {
             .where((m) => m.readStatus == "0")
             .length;
         _updateSystemBadge(unreadCount);
+
+        if (Get.isRegistered<NotificationService>()) {
+          Get.find<NotificationService>().processPendingNotification();
+        }
       }
 
       if (orgResult != null) {
@@ -174,7 +187,8 @@ class ProfileController extends BaseController with WidgetsBindingObserver {
   }
 
   Future<void> syncDeviceData() async {
-    isNotificationEnabled.value = OneSignal.Notifications.permission;
+    final bool isPushActive = OneSignal.Notifications.permission;
+    isNotificationEnabled.value = isPushActive;
 
     final prefs = await SharedPreferences.getInstance();
     const secureStorage = FlutterSecureStorage();
@@ -183,7 +197,11 @@ class ProfileController extends BaseController with WidgetsBindingObserver {
     final orgId = prefs.getString('org_id');
 
     if (token != null && orgId != null) {
-      _repo.updateDeviceToken(orgId: orgId, token: token);
+      await _repo.updateDeviceToken(
+        orgId: orgId, 
+        token: token, 
+        isPushActive: isPushActive,
+      );
     }
   }
 

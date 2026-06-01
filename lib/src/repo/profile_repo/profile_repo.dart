@@ -73,11 +73,11 @@ class ProfileRepository {
   Future<void> updateDeviceToken({
     required String orgId,
     required String token,
+    required bool isPushActive,
   }) async {
     try {
       final appId = await _getAppId();
       final packageInfo = await PackageInfo.fromPlatform();
-      final bool isPushActive = OneSignal.Notifications.permission;
       final pushSubscriptionId = OneSignal.User.pushSubscription.id;
 
       final data = {
