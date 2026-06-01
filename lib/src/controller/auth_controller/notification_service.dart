@@ -9,7 +9,7 @@ class NotificationService extends GetxService {
   Future<NotificationService> init() async {
     OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
     OneSignal.initialize("025a1b58-3714-4f1d-8ad1-efa02bd42605");
-    OneSignal.Notifications.requestPermission(true);
+    // OneSignal.Notifications.requestPermission(true);
 
     _setupGlobalClickListeners();
     return this;
