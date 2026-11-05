@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
-import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:ivo_service_app/src/components/app_bottom_bar/app_bottom_bar.dart';
 import 'package:ivo_service_app/src/components/base/base_view.dart';
+import 'package:ivo_service_app/src/controller/auth_controller/notification_service.dart';
 import 'package:ivo_service_app/src/controller/profile_controller/profile_controller.dart';
 import 'package:ivo_service_app/src/model/profile_model/profile_model.dart';
 import 'package:ivo_service_app/src/routes/app_routes.dart';
@@ -597,14 +597,13 @@ class HomePage extends BaseView<ProfileController> {
                 onPressed: () async {
                   Get.back();
 
-                  final hasPermission = OneSignal.Notifications.permission;
+                  final notifications = Get.find<NotificationService>();
 
-                  if (hasPermission) {
+                  if (await notifications.isPermissionGranted()) {
                     await controller.syncDeviceData();
                     return;
                   }
-                  final accepted =
-                      await OneSignal.Notifications.requestPermission(true);
+                  final accepted = await notifications.requestPermission();
 
                   if (accepted) {
                     await controller.syncDeviceData();

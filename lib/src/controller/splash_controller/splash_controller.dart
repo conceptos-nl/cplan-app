@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:ivo_service_app/src/controller/auth_controller/link_service.dart';
@@ -7,8 +6,8 @@ import 'package:ivo_service_app/src/controller/profile_controller/profile_contro
 import 'package:ivo_service_app/src/model/auth_model/auth_model.dart';
 import 'package:ivo_service_app/src/repo/auth_repo/auth_repo.dart';
 import 'package:ivo_service_app/src/routes/app_routes.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ivo_service_app/src/utils/api/api_config.dart';
+import 'package:ivo_service_app/src/utils/session/session_store.dart';
 
 class SplashController extends GetxController {
   final AuthRepository _repo = AuthRepository();
@@ -17,22 +16,30 @@ class SplashController extends GetxController {
   @override
   void onReady() {
     super.onReady();
-    
+
     ever(_linkService.pendingMagicLink, _handleMagicLinkRouting);
 
-    if (_linkService.pendingMagicLink.value == null) {
+    // ever() only reports changes. A link that opened the app is already set
+    // by now, so handle it here; otherwise the splash never moves on.
+    final pendingLink = _linkService.pendingMagicLink.value;
+    if (pendingLink == null) {
       _decideNextScreen();
+    } else {
+      _handleMagicLinkRouting(pendingLink);
     }
   }
 
   Future<void> _handleMagicLinkRouting(MagicLinkData? data) async {
     if (data == null || !data.isValid) return;
 
-    final prefs = await SharedPreferences.getInstance();
-    const secureStorage = FlutterSecureStorage();
-    final currentToken = await secureStorage.read(key: 'auth_token');
-    final currentOrg = prefs.getString('org_id');
-    final currentUser = prefs.getString('user_id');
+    String? currentToken;
+    try {
+      currentToken = await SessionStore.readToken();
+    } catch (e) {
+      debugPrint("Could not read current session, continuing with link: $e");
+    }
+    final currentOrg = await SessionStore.readOrgId();
+    final currentUser = await SessionStore.readUserId();
 
     if (currentToken != null && (currentOrg != data.org || currentUser != data.user)) {
       final bool? confirmSwitch = await Get.dialog<bool>(
@@ -64,8 +71,7 @@ class SplashController extends GetxController {
         debugPrint("Old token backend invalidation failed, forcing local wipe anyway: $e");
       }
 
-      await prefs.clear();
-      await secureStorage.delete(key: 'auth_token');
+      await SessionStore.clear();
       Get.delete<ProfileController>(force: true);
     }
 
@@ -79,14 +85,16 @@ class SplashController extends GetxController {
 
   Future<void> _executeMagicLinkLogin(String org, String user, String code) async {
     try {
-      final response = await _repo.login(org, user, code);
-      
+      final appId = await SessionStore.loginAppId();
+      final response = await _repo.login(org, user, code, appId: appId);
+
       if (response.success && response.token != null) {
-        final prefs = await SharedPreferences.getInstance();
-        const secureStorage = FlutterSecureStorage();
-        await secureStorage.write(key: 'auth_token', value: response.token!);
-        await prefs.setString('user_id', user);
-        await prefs.setString('org_id', org);
+        await SessionStore.saveSession(
+          token: response.token!,
+          orgId: org,
+          userId: user,
+          appId: appId,
+        );
 
         Get.put(ProfileController(), permanent: true);
         Get.offAllNamed(AppRoutes.home);
@@ -116,27 +124,42 @@ class SplashController extends GetxController {
     }
   }
 
+  /// Only says "logged out" when there is no session or the backend rejected
+  /// it. Anything else (unreadable storage, no network, server trouble)
+  /// keeps the user logged in.
   Future<bool> _checkSession() async {
+    final String? token;
+    final String? orgId;
     try {
-      final prefs = await SharedPreferences.getInstance();
-      const secureStorage = FlutterSecureStorage();
-      final token = await secureStorage.read(key: 'auth_token');
-      final orgId = prefs.getString('org_id');
+      token = await SessionStore.readToken();
+      orgId = await SessionStore.readOrgId();
+    } catch (e) {
+      // e.g. the iOS keychain while the device is locked during a background
+      // launch. The token is still there; the home screen retries on resume.
+      debugPrint("Session storage unreadable, keeping session: $e");
+      try {
+        return await SessionStore.readOrgId() != null;
+      } catch (_) {
+        return false;
+      }
+    }
 
-      if (token == null || orgId == null) return false;
+    if (token == null || orgId == null) return false;
 
-      final deviceData = await _repo.getDeviceInfo();
-      final data = {"id": orgId, "token": token, ...deviceData};
+    try {
+      final data = {
+        "id": orgId,
+        "token": token,
+        "appid": await SessionStore.sessionAppId(),
+        ...await _repo.getDeviceInfo(),
+      };
 
       final response = await ApiConfig.dio.post('login/', data: data);
       return _isSuccess(response.data);
+    } on DioException catch (e) {
+      return !ApiConfig.isSessionRejected(e);
     } catch (e) {
-      if (e is DioException && 
-         (e.response?.statusCode == 401 || e.response?.statusCode == 403)) {
-        return false;
-      }
-      const secureStorage = FlutterSecureStorage();
-      return await secureStorage.read(key: 'auth_token') != null;
+      return true;
     }
   }
 

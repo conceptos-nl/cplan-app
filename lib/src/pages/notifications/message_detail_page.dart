@@ -37,12 +37,31 @@ class MessageDetailPage extends BaseView<ProfileController> {
     }
   }
 
+  /// "/messageDetail/277" -> "277"
+  String? _idFromRouteName(String? name) {
+    if (name == null) return null;
+    final segments = Uri.parse(name).pathSegments;
+    return segments.length >= 2 ? segments.last : null;
+  }
+
   @override
   Widget buildBody(BuildContext context) {
     final theme = context.theme;
-    final String? idFromUrl = Get.parameters['id'];
-    if (idFromUrl != null) {
-      controller.markMessageAsRead(idFromUrl);
+
+    // Read from this page's own route. Get.parameters / Get.arguments are
+    // global and get overwritten by any later navigation.
+    final settings = ModalRoute.of(context)?.settings;
+    final Message? routeMessage =
+        settings?.arguments is Message ? settings!.arguments as Message : null;
+    final String? messageId =
+        routeMessage?.id ?? _idFromRouteName(settings?.name);
+
+    if (messageId != null) {
+      controller.markMessageAsRead(messageId);
+      // Opened from a push: the message may be newer than the loaded list.
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => controller.loadMessageIfMissing(messageId),
+      );
     }
 
     return Scaffold(
@@ -61,14 +80,18 @@ class MessageDetailPage extends BaseView<ProfileController> {
           return const SizedBox.shrink();
         }
 
-        final String? idFromUrl = Get.parameters['id'];
         final Message? message =
-            (Get.arguments is Message ? Get.arguments as Message : null) ??
+            routeMessage ??
             controller.profile.value?.messages.firstWhereOrNull(
-              (m) => m.id == idFromUrl,
+              (m) => m.id == messageId,
             );
 
         if (message == null) {
+          final stillLooking = messageId != null &&
+              !controller.settledMessageLookups.contains(messageId);
+          if (stillLooking) {
+            return const Center(child: CircularProgressIndicator());
+          }
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
