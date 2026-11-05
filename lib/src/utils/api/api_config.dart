@@ -1,9 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:get/get.dart';
-import 'package:ivo_service_app/src/routes/app_routes.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:ivo_service_app/src/controller/profile_controller/profile_controller.dart';
+import 'package:ivo_service_app/src/utils/session/session_expiry.dart';
 
 class ApiConfig {
   static const String _baseUrl = 'https://api.cplan.nl/v1/app/';
@@ -24,19 +20,32 @@ class ApiConfig {
         ..interceptors.add(
           InterceptorsWrapper(
             onError: (error, handler) async {
-              if (error.response?.statusCode == 401 ||
-                  error.response?.statusCode == 403) {
-                if (!error.requestOptions.path.contains('login/')) {
-                  final prefs = await SharedPreferences.getInstance();
-                  const secureStorage = FlutterSecureStorage();
-                  await prefs.clear();
-                  await secureStorage.delete(key: 'auth_token');
-                  Get.delete<ProfileController>(force: true); 
-                  Get.offAllNamed(AppRoutes.organizationCode);
-                }
+              // login/ failures are handled by the caller; logout/ always
+              // ends the session itself.
+              final path = error.requestOptions.path;
+              if (!path.contains('login/') &&
+                  !path.contains('logout/') &&
+                  isSessionRejected(error)) {
+                await SessionExpiry.expire(reason: _backendMessage(error));
               }
               handler.next(error);
             },
           ),
         );
+
+  /// True only when the backend itself rejected the token/appid pair:
+  /// 403 {"success":false,"message":"Apparaat niet meer actief, log opnieuw in."}
+  ///
+  /// The backend answers 401 for a wrong X-API-KEY, which says nothing about
+  /// the user's session. A 403 that isn't the backend's JSON (e.g. an
+  /// Apache/ModSecurity HTML error page) says nothing about it either.
+  /// Neither may log the user out.
+  static bool isSessionRejected(DioException error) {
+    return error.response?.statusCode == 403 && error.response?.data is Map;
+  }
+
+  static String? _backendMessage(DioException error) {
+    final data = error.response?.data;
+    return data is Map ? data['message']?.toString() : null;
+  }
 }

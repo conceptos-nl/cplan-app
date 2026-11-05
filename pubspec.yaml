@@ -1,7 +1,7 @@
 name: ivo_service_app
 description: "A new Flutter project."
 publish_to: 'none'
-version: 1.2.1+15
+version: 1.3.0+16
 
 environment:
   sdk: ^3.10.1
@@ -22,8 +22,9 @@ dependencies:
   snow_fall_animation: ^0.0.1+3
   app_links: ^7.0.0
   font_awesome_flutter: ^11.0.0
-  onesignal_flutter: ^5.1.2
   flutter_secure_storage: ^10.2.0
+  firebase_core: ^4.13.0
+  firebase_messaging: ^16.5.0
 
 dev_dependencies:
   flutter_test:
@@ -33,6 +34,12 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  # iOS plugins resolve through Swift Package Manager (Podfile.lock only holds
+  # Flutter). Pinned here so a machine without the global flag doesn't fall
+  # back to CocoaPods.
+  config:
+    enable-swift-package-manager: true
 
   assets:
     - assets/icons/

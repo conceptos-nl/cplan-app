@@ -1,23 +1,12 @@
 import 'dart:io';
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:ivo_service_app/src/model/profile_model/profile_model.dart';
 import 'package:ivo_service_app/src/utils/api/api_config.dart';
+import 'package:ivo_service_app/src/utils/session/session_store.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:onesignal_flutter/onesignal_flutter.dart';
-
 
 class ProfileRepository {
-  Future<String> _getAppId() async {
-    final deviceInfo = DeviceInfoPlugin();
-    if (Platform.isAndroid) {
-      final androidInfo = await deviceInfo.androidInfo;
-      return androidInfo.id;
-    } else if (Platform.isIOS) {
-      final iosInfo = await deviceInfo.iosInfo;
-      return iosInfo.identifierForVendor ?? 'unknown_ios_id';
-    }
-    return 'unknown';
-  }
+  // The backend binds the token to the appid it was issued for.
+  Future<String> _getAppId() => SessionStore.sessionAppId();
 
   Future<ProfileModel?> fetchProfile({
     required String orgId,
@@ -74,11 +63,11 @@ class ProfileRepository {
     required String orgId,
     required String token,
     required bool isPushActive,
+    required String? pushId,
   }) async {
     try {
       final appId = await _getAppId();
       final packageInfo = await PackageInfo.fromPlatform();
-      final pushSubscriptionId = OneSignal.User.pushSubscription.id;
 
       final data = {
         "id": orgId,
@@ -87,7 +76,10 @@ class ProfileRepository {
         "os_name": Platform.isAndroid ? "Android" : "iOS",
         "os_version": Platform.operatingSystemVersion,
         "app_version": packageInfo.version,
-        "push": {"active": isPushActive, "id": pushSubscriptionId ?? ""},
+        // Since 1.3.0 `push.id` is an FCM registration token (OneSignal
+        // subscription id before that); the backend picks the channel by
+        // app_version.
+        "push": {"active": isPushActive, "id": pushId ?? ""},
       };
       
       await ApiConfig.dio.patch('settings/', data: data);

@@ -1,17 +1,16 @@
 import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:ivo_service_app/src/model/auth_model/auth_model.dart';
 import 'package:ivo_service_app/src/utils/api/api_config.dart';
+import 'package:ivo_service_app/src/utils/session/session_store.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthRepository {
+  /// OS and app details sent along with the session check.
   Future<Map<String, String>> getDeviceInfo() async {
     final deviceInfo = DeviceInfoPlugin();
     final packageInfo = await PackageInfo.fromPlatform();
 
-    String appId = 'unknown';
     String osName = 'unknown';
     String osVersion = 'unknown';
 
@@ -19,16 +18,13 @@ class AuthRepository {
       final androidInfo = await deviceInfo.androidInfo;
       osName = 'Android';
       osVersion = androidInfo.version.release;
-      appId = androidInfo.id;
     } else if (Platform.isIOS) {
       final iosInfo = await deviceInfo.iosInfo;
       osName = 'iOS';
       osVersion = iosInfo.systemVersion;
-      appId = iosInfo.identifierForVendor ?? 'unknown_ios_id';
     }
 
     return {
-      "appid": appId,
       "os_name": osName,
       "os_version": osVersion,
       "app_version": packageInfo.version,
@@ -54,16 +50,18 @@ class AuthRepository {
     return null;
   }
 
+  /// [appId] must be stored with the session on success; see
+  /// [SessionStore.saveSession].
   Future<LoginResponse> login(
     String orgId,
     String userId,
-    String accessCode,
-  ) async {
+    String accessCode, {
+    required String appId,
+  }) async {
     try {
-      final deviceData = await getDeviceInfo();
       final data = {
         "id": orgId,
-        "appid": deviceData['appid'],
+        "appid": appId,
         "userid": userId,
         "code": accessCode,
       };
@@ -74,26 +72,13 @@ class AuthRepository {
     }
   }
 
-  Future<bool> checkSession() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      const secureStorage = FlutterSecureStorage();
-      final token = await secureStorage.read(key: 'auth_token');
-      final orgId = prefs.getString('org_id');
-      if (token == null || orgId == null) return false;
-      final deviceData = await getDeviceInfo();
-      final data = {"id": orgId, "appid": deviceData['appid'], "token": token};
-      final response = await ApiConfig.dio.post('login/', data: data);
-      return LoginResponse.fromJson(response.data).success;
-    } catch (e) {
-      return false;
-    }
-  }
-
   Future<bool> logout(String orgId, String token) async {
     try {
-      final deviceData = await getDeviceInfo();
-      final data = {"id": orgId, "appid": deviceData['appid'], "token": token};
+      final data = {
+        "id": orgId,
+        "appid": await SessionStore.sessionAppId(),
+        "token": token,
+      };
 
       final response = await ApiConfig.dio.post('logout/', data: data);
 

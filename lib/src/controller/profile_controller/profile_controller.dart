@@ -1,16 +1,14 @@
 import 'package:app_badge_plus/app_badge_plus.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:ivo_service_app/src/controller/auth_controller/notification_service.dart';
 import 'package:ivo_service_app/src/controller/base_controller/base_controller.dart';
-import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:ivo_service_app/src/model/auth_model/auth_model.dart';
 import 'package:ivo_service_app/src/model/profile_model/profile_model.dart';
 import 'package:ivo_service_app/src/repo/auth_repo/auth_repo.dart';
 import 'package:ivo_service_app/src/repo/profile_repo/profile_repo.dart';
-import 'package:ivo_service_app/src/routes/app_routes.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ivo_service_app/src/utils/session/session_expiry.dart';
+import 'package:ivo_service_app/src/utils/session/session_store.dart';
 
 
 class ProfileController extends BaseController with WidgetsBindingObserver {
@@ -27,16 +25,22 @@ class ProfileController extends BaseController with WidgetsBindingObserver {
 
   final Set<String> _openingMessages = {};
 
+  /// Message ids whose reload has finished. The detail screen only says
+  /// "not found" for these; before that it shows a spinner.
+  final RxSet<String> settledMessageLookups = <String>{}.obs;
+  final Set<String> _messageLookupsInFlight = {};
+
+  NotificationService? get _notifications =>
+      Get.isRegistered<NotificationService>()
+          ? Get.find<NotificationService>()
+          : null;
+
   @override
   void onInit() {
     super.onInit();
     WidgetsBinding.instance.addObserver(this);
     fetchUserProfile();
     syncDeviceData();
-
-    OneSignal.Notifications.addPermissionObserver((permission) {
-      syncDeviceData();
-    });
   }
 
   @override
@@ -50,9 +54,10 @@ class ProfileController extends BaseController with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       _checkAndRefresh();
 
-      Future.delayed(const Duration(milliseconds: 300), () {
-        final currentPermission = OneSignal.Notifications.permission;
-        if (currentPermission != isNotificationEnabled.value) {
+      // The user may have toggled notifications in the system settings.
+      Future.delayed(const Duration(milliseconds: 300), () async {
+        final granted = await _notifications?.isPermissionGranted() ?? false;
+        if (granted != isNotificationEnabled.value) {
           syncDeviceData();
         }
       });
@@ -60,6 +65,11 @@ class ProfileController extends BaseController with WidgetsBindingObserver {
   }
 
   void _checkAndRefresh() {
+    // The first load failed (offline, or storage unreadable at launch).
+    if (profile.value == null && !isLoading.value) {
+      fetchUserProfile();
+      return;
+    }
     if (_lastFetchTime == null) return;
     final now = DateTime.now();
     final difference = now.difference(_lastFetchTime!);
@@ -81,10 +91,8 @@ class ProfileController extends BaseController with WidgetsBindingObserver {
         return;
       }
 
-      final prefs = await SharedPreferences.getInstance();
-      const secureStorage = FlutterSecureStorage();
-      final token = await secureStorage.read(key: 'auth_token');
-      final orgId = prefs.getString('org_id');
+      final token = await SessionStore.readToken();
+      final orgId = await SessionStore.readOrgId();
 
       if (token != null && orgId != null) {
         final success = await _repo.updateStatus(
@@ -105,6 +113,26 @@ class ProfileController extends BaseController with WidgetsBindingObserver {
     }
   }
 
+  /// A push usually announces a message newer than the loaded profile, so
+  /// reload once before the detail screen gives up on it.
+  Future<void> loadMessageIfMissing(String messageId) async {
+    final isLoaded =
+        profile.value?.messages.any((m) => m.id == messageId) ?? false;
+    if (isLoaded ||
+        settledMessageLookups.contains(messageId) ||
+        _messageLookupsInFlight.contains(messageId)) {
+      return;
+    }
+
+    _messageLookupsInFlight.add(messageId);
+    try {
+      await fetchUserProfile(showLoading: false);
+    } finally {
+      _messageLookupsInFlight.remove(messageId);
+      settledMessageLookups.add(messageId);
+    }
+  }
+
   Future<void> fetchUserProfile({bool showLoading = true}) async {
     try {
       if (showLoading && profile.value == null) {
@@ -112,13 +140,15 @@ class ProfileController extends BaseController with WidgetsBindingObserver {
       }
       errorMessage.value = '';
 
-      final prefs = await SharedPreferences.getInstance();
-      const secureStorage = FlutterSecureStorage();
-      final token = await secureStorage.read(key: 'auth_token');
-      final orgId = prefs.getString('org_id');
+      // A read error throws into the catch below and is shown as an error.
+      // Only a token that is really gone ends the session.
+      final token = await SessionStore.readToken();
+      final orgId = await SessionStore.readOrgId();
 
       if (token == null || orgId == null) {
-        _handleSessionExpiry("Apparaat niet meer actief, log opnieuw in.");
+        await SessionExpiry.expire(
+          reason: "Apparaat niet meer actief, log opnieuw in.",
+        );
         return;
       }
 
@@ -137,9 +167,7 @@ class ProfileController extends BaseController with WidgetsBindingObserver {
             .length;
         _updateSystemBadge(unreadCount);
 
-        if (Get.isRegistered<NotificationService>()) {
-          Get.find<NotificationService>().processPendingNotification();
-        }
+        _notifications?.processPendingNotification();
       }
 
       if (orgResult != null) {
@@ -156,52 +184,43 @@ class ProfileController extends BaseController with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _handleSessionExpiry(String reason) async {
-    final prefs = await SharedPreferences.getInstance();
-    const secureStorage = FlutterSecureStorage();
-    await prefs.clear();
-    await secureStorage.delete(key: 'auth_token');
-    Get.delete<ProfileController>(force: true);
-    Get.offAllNamed(AppRoutes.organizationCode);
-    Get.snackbar("Sessie beëindigd", reason);
-  }
-
   Future<void> refreshProfile() async {
     await fetchUserProfile(showLoading: false);
   }
 
   Future<void> logout() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      const secureStorage = FlutterSecureStorage();
-      final token = await secureStorage.read(key: 'auth_token');
-      final orgId = prefs.getString('org_id');
+      final token = await SessionStore.readToken();
+      final orgId = await SessionStore.readOrgId();
       if (token != null && orgId != null) {
         await _authRepo.logout(orgId, token);
       }
     } catch (e) {
       // Ignored
     } finally {
-      await _handleSessionExpiry("Succesvol uitgelogd");
+      await SessionExpiry.expire(reason: "Succesvol uitgelogd");
     }
   }
 
   Future<void> syncDeviceData() async {
-    final bool isPushActive = OneSignal.Notifications.permission;
+    final notifications = _notifications;
+    final bool isPushActive =
+        await notifications?.isPermissionGranted() ?? false;
     isNotificationEnabled.value = isPushActive;
 
-    final prefs = await SharedPreferences.getInstance();
-    const secureStorage = FlutterSecureStorage();
+    try {
+      final token = await SessionStore.readToken();
+      final orgId = await SessionStore.readOrgId();
+      if (token == null || orgId == null) return;
 
-    final token = await secureStorage.read(key: 'auth_token');
-    final orgId = prefs.getString('org_id');
-
-    if (token != null && orgId != null) {
       await _repo.updateDeviceToken(
-        orgId: orgId, 
-        token: token, 
+        orgId: orgId,
+        token: token,
         isPushActive: isPushActive,
+        pushId: await notifications?.getPushToken(),
       );
+    } catch (e) {
+      debugPrint("Device sync failed: $e");
     }
   }
 

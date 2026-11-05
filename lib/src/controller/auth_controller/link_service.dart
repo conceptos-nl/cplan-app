@@ -11,8 +11,9 @@ class LinkService extends GetxService {
   final Rx<MagicLinkData?> pendingMagicLink = Rx<MagicLinkData?>(null);
 
   Future<LinkService> init() async {
+    Uri? initialUri;
     try {
-      final initialUri = await _appLinks.getInitialLink();
+      initialUri = await _appLinks.getInitialLink();
       if (initialUri != null) {
         _parseUri(initialUri);
       }
@@ -20,8 +21,15 @@ class LinkService extends GetxService {
       debugPrint("Error reading initial link: $e");
     }
 
+    // uriLinkStream re-delivers the initial link. Processing it twice would
+    // run two logins with the same code, and the token stored last might not
+    // be the one the backend issued last.
+    var skipInitialEcho = initialUri != null;
     _linkSubscription = _appLinks.uriLinkStream.listen(
       (uri) {
+        final isEcho = skipInitialEcho && uri == initialUri;
+        skipInitialEcho = false;
+        if (isEcho) return;
         _parseUri(uri);
       },
       onError: (err) {
