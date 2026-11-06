@@ -1,8 +1,7 @@
-import 'dart:io';
 import 'package:ivo_service_app/src/model/profile_model/profile_model.dart';
+import 'package:ivo_service_app/src/repo/auth_repo/auth_repo.dart';
 import 'package:ivo_service_app/src/utils/api/api_config.dart';
 import 'package:ivo_service_app/src/utils/session/session_store.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 
 class ProfileRepository {
   // The backend binds the token to the appid it was issued for.
@@ -67,15 +66,15 @@ class ProfileRepository {
   }) async {
     try {
       final appId = await _getAppId();
-      final packageInfo = await PackageInfo.fromPlatform();
 
       final data = {
         "id": orgId,
         "appid": appId,
         "token": token,
-        "os_name": Platform.isAndroid ? "Android" : "iOS",
-        "os_version": Platform.operatingSystemVersion,
-        "app_version": packageInfo.version,
+        // Same os_name / os_version / app_version as the session check:
+        // "Android" + "14", not Platform.operatingSystemVersion (on Android
+        // that is the Linux kernel string).
+        ...await AuthRepository().getDeviceInfo(),
         // Since 1.3.0 `push.id` is an FCM registration token (OneSignal
         // subscription id before that); the backend picks the channel by
         // app_version.
